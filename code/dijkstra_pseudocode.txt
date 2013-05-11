@@ -1,0 +1,7 @@
+1. Suche "Route" mit geringster Metrik in "Routes" dessen ID noch in "Graph" ist und entferne "Node" mit dieser ID aus "Graph"
+2. Besuche alle "ChildNodes" in aufsteigender Reihenfolge
+	a. Für jedes "ChildNode": prüfe ob Metrik "ChildNode" > (Metrik "CurrentRoute" + Distanz "ChildNode")
+		falls ja:
+		I.  Aktualisiere Metrik "ChildRoute"
+		II. Aktualisiere "RouteList" von "ChildRoute": "RouteList" von "CurrentNode" ++ [ID von "CurrentNode"]
+3. Wiederhohle bis "Graph" leer ist
