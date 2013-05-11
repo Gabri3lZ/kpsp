@@ -32,4 +32,4 @@ nextNode graph routes = nextNodeId
 dijkstra :: [([Char], [([Char], Integer)])] -> [([Char], Integer, [[Char]])] -> [([Char], Integer, [[Char]])] 
 dijkstra graph [] = dijkstra graph (setupRoute graph) -- einstieg
 dijkstra [] routes = routes -- basisfall
-dijkstra graph routes = dijkstra [] routes -- rekursionsfall
+dijkstra graph routes = dijkstra (takeFromGraph (nextNodeId graph routes)) routes -- rekursionsfall
