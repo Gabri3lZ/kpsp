@@ -4,19 +4,29 @@ import Prelude
 import System.IO
 
 -- Typendeklaration zur besseren Lesbarkeit der Funktionsdeklarationen
-
+-- |IP-Adresse eines Routers
 type Address = [Char]
+-- |Das Interface des Routers
 type Interface = [Char]
+-- |Priorität des Protokoll
 type Priority = Integer
+-- |Timeout bis Route erneuert werden muss (?)
 type Dead = Integer
+-- |ID des Routers gemäss dem OSPF-Protokoll
 type RouterId = Integer
+-- |Die Distanz zwischen zwei Routern 
 type Distance = Integer
+-- |Das Gewicht des nach OSPF gewichteten Pfades (Aufsummierung der Distanzen auf Pfad)
 type Metric = Integer
+-- |Liste mit den Hops, welche auf dem Pfad gemacht werden müssen
 type Route = [RouterId]
+-- |Beschreibung eines kürzesten Pfad zu einer Route
 type ShortestPath = (RouterId, Metric, Route)
+-- |Der Graph beschreibt die Netzwerktopologie
 type Graph = [(RouterId, [(RouterId, Distance)])]
 
 -- Daten Deklarationen
+-- |Status gem. OSPF (?)
 data State = Down | Attempt | Init | TwoWay | ExStart | Exchange | Loading | Full
 
 
@@ -84,8 +94,8 @@ minRoute :: (RouterId, Metric) -> ShortestPath -> (RouterId, Metric)
 minRoute (routeIdL, weightL) (routeIdR,weightR,_) = if weightL < weightR then (routeIdL, weightL) else (routeIdR, weightR)
 
 -- |Gibt RouterId zurück, welcher noch nicht abgearbeitet ist und den aktuell kürzesten Pfad hat
-nextNode :: Graph -> [ShortestPath] -> RouterId
-nextNode graph routes = nextNodeId
+nextRouterId :: Graph -> [ShortestPath] -> RouterId
+nextRouterId graph routes = nextNodeId
 	where
 		graphIds = [nodeId | (nodeId,_) <- graph]
 		possibleRoutes = [(routeId, weight, route) | (routeId, weight, route) <- routes, weight >= 0, elem routeId graphIds]
@@ -116,11 +126,10 @@ dijkstra graph [] = dijkstra graph (setupRoute graph) -- einstieg: erstelle init
 dijkstra [] routes = routes -- basisfall: Routentabelle erstellt
 dijkstra graph routes = dijkstra restGraph updateShortestPathss  --- 
 	where
-		nextNodeId = nextNode graph routes
-		neighbours = neighboursOfCurrentRouter nextNodeId graph
-		restGraph = [(nodeId, neighbours) | (nodeId, neighbours) <- graph, nodeId /= nextNodeId]			
-		updateShortestPathss = updateShortestPaths neighbours (currentRoute routes nextNodeId) routes
-
+		nRid = nextRouterId graph routes
+		neighbours = neighboursOfCurrentRouter nRid graph
+		restGraph = [(routerId, neighbours) | (routerId, neighbours) <- graph, routerId /= nRid]			
+		updateShortestPathss = updateShortestPaths neighbours (currentRoute routes nRid) routes
 
 
 main = do 
