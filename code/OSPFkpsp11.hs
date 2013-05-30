@@ -27,8 +27,7 @@ type Graph = [(RouterId, [(RouterId, Distance)])]
 
 -- Daten Deklarationen
 -- |Status gem. OSPF (?)
-data State = Down | Attempt | Init | TwoWay | ExStart | Exchange | Loading | Full
-
+data State = Down | Attempt | Init | TwoWay | ExStart | Exchange | Loading | Full deriving(Show, Eq)
 
 -- Längen und Offset Konstanten für die LinkStateUpdates in Anzahl Bytes
 dataLinkFrameHeaderLength = 14
@@ -90,8 +89,8 @@ setupRoute :: Graph -> [ShortestPath]
 setupRoute ((a,_):graph) = (a,0,[]):[(fst g, -1, []) | g <- graph]
 
 -- |Finde Route mit kleinster Metrik. -> Das zweite Argument ist ein Shortestpath, welcher möglich ist ((.....)) 
-minRoute :: (RouterId, Metric) -> ShortestPath -> (RouterId, Metric)
-minRoute (routeIdL, weightL) (routeIdR,weightR,_) = if weightL < weightR then (routeIdL, weightL) else (routeIdR, weightR)
+filterPossibleRoutes :: (RouterId, Metric) -> ShortestPath -> (RouterId, Metric)
+filterPossibleRoutes (routeIdL, weightL) (routeIdR,weightR,_) = if weightL < weightR then (routeIdL, weightL) else (routeIdR, weightR)
 
 -- |Gibt RouterId zurück, welcher noch nicht abgearbeitet ist und den aktuell kürzesten Pfad hat
 nextRouterId :: Graph -> [ShortestPath] -> RouterId
@@ -99,7 +98,7 @@ nextRouterId graph routes = nextNodeId
 	where
 		graphIds = [nodeId | (nodeId,_) <- graph]
 		possibleRoutes = [(routeId, weight, route) | (routeId, weight, route) <- routes, weight >= 0, elem routeId graphIds]
-		nextNodeId = fst (foldl minRoute (999999, 10000) possibleRoutes)
+		nextNodeId = fst (foldl filterPossibleRoutes (999999, 10000) possibleRoutes)
 
 updateShortestPaths :: [(RouterId, Distance)] -> ShortestPath -> [ShortestPath] -> [ShortestPath]
 updateShortestPaths ((neighbourId, neibourDistance):ns) currentRoute routes = updateShortestPaths ns currentRoute updated
@@ -133,4 +132,5 @@ dijkstra graph routes = dijkstra restGraph updateShortestPathss  ---
 
 
 main = do 
+		print (show graphInput)
 		print ((dijkstra graphInput []) == resultExpected)
