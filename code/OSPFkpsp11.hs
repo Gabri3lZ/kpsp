@@ -1,3 +1,5 @@
+module OSPFkpsp11 where
+
 import Prelude
 import System.IO
 
@@ -46,18 +48,6 @@ linkLength = 12
 metricOffset = 10
 metricLength = 2
 
-
--- |Nimt einen Hex String entgegen und gibt eine Integer Räpresentation als String zurück
-hexStringToIntString :: String -> RouterId
---hexStringToInt string =
-
--- |Liest die Nachbarschaftstabelle aus einem File ein und gibt eine Liste mit Nachbarn und deren Eigenschaften zurück
-readNeighbourTable :: FilePath -> [(Address, Interface, State, Priority, Dead)]
-
--- |Liest ein LinkStateUpdate aus einem File ein und gibt die Topologie Tabelle (Graph) als Liste zurück
-readLinkStateUpdate :: FilePath -> Graph
---readLinkStateUpdate filePath = do
---	update <- readFile "linkstateupdates/linkstateupdate1.txt"
 
 
 
@@ -121,4 +111,4 @@ dijkstra graph routes = dijkstra restGraph updateShortestPathss  ---
 		updateShortestPathss = updateShortestPaths neighbours (currentRoute routes nextNodeId) routes
 
 main = do 
-		print (dijkstra graphInput []) == resultExpected)
+		print ((dijkstra graphInput []) == resultExpected)
