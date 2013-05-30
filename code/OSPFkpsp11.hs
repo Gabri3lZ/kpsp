@@ -88,19 +88,26 @@ resultExpected = [(1, 0, []),
 setupRoute :: Graph -> [ShortestPath]
 setupRoute ((a,_):graph) = (a,0,[]):[(fst g, -1, []) | g <- graph]
 
--- |Finde Route mit kleinster Metrik. -> Das zweite Argument ist ein Shortestpath, welcher möglich ist ((.....)) 
-filterPossibleRoutes :: (RouterId, Metric) -> ShortestPath -> (RouterId, Metric)
-filterPossibleRoutes (routeIdL, weightL) (routeIdR,weightR,_) = if weightL < weightR then (routeIdL, weightL) else (routeIdR, weightR)
 
 -- |Gibt RouterId zurück, welcher noch nicht abgearbeitet ist und den aktuell kürzesten Pfad hat
 nextRouterId :: Graph -> [ShortestPath] -> RouterId
-nextRouterId graph routes = nextNodeId
+nextRouterId graph shortestpaths = nextRId
 	where
 		graphIds = [nodeId | (nodeId,_) <- graph]
-		possibleRoutes = [(routeId, weight, route) | (routeId, weight, route) <- routes, weight >= 0, elem routeId graphIds]
-		nextNodeId = fst (foldl filterPossibleRoutes (999999, 10000) possibleRoutes)
+		possibleRoutes = [(routeId, metric, route) | (routeId, metric, route) <- shortestpaths, metric >= 0, elem routeId graphIds]
+		nextRId = fst (foldl sortShortestPath (999999, 10000) possibleRoutes)
+
+-- |Vergleicht ein (RouterId, Metric)-Tupel mit einem ShortestPath und gibt das Element mit kleinerer Metrik zurück, als (RouterId, Metric)
+-- |Wird verwendet um den Router mit dem aktuell kürzesten Pfad zu finden 
+sortShortestPath :: (RouterId, Metric) -> ShortestPath -> (RouterId, Metric)
+sortShortestPath (routeIdL, metricL) (routeIdR,metricR,_) = if metricL < metricR then (routeIdL, metricL) else (routeIdR, metricR)
 
 
+-- |Aktualisiert die Liste der kürzesten Pfade anhand des aktuell ausgewählten Router. 
+-- |Das erste Argument beschreibt die Distanz zu den Nachbarn des Routers
+-- |Das zweite Argument ist der kürzeste Pfad zum aktuellen Router
+-- |Das letzte Argument ist die Liste der aktuell kürzesten Pfade.
+-- |Die Rückgabe ist die aktualisierte Shortestpath-Liste
 updateShortestPaths :: [(RouterId, Distance)] -> ShortestPath -> [ShortestPath] -> [ShortestPath]
 updateShortestPaths ((neighbourId, neibourDistance):ns) currentRoute routes = updateShortestPaths ns currentRoute updated
 	where
@@ -110,7 +117,7 @@ updateShortestPaths ((neighbourId, neibourDistance):ns) currentRoute routes = up
 			else (nodeId, metrik, route) | (nodeId, metrik, route) <- routes]
 updateShortestPaths [] _ routes = routes
 
--- |Findet aktuellen kürzesten Pfad zu einem Router
+-- |Gibt den aktuellen ShortestPath zu einem Router aus der Liste zurück
 currentRoute :: [ShortestPath] -> RouterId -> ShortestPath
 currentRoute routes targetNode = head [(nodeId, metric, route) | (nodeId, metric, route) <- routes, nodeId == targetNode]
 
