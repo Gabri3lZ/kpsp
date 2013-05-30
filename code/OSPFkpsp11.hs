@@ -100,6 +100,7 @@ nextRouterId graph routes = nextNodeId
 		possibleRoutes = [(routeId, weight, route) | (routeId, weight, route) <- routes, weight >= 0, elem routeId graphIds]
 		nextNodeId = fst (foldl filterPossibleRoutes (999999, 10000) possibleRoutes)
 
+
 updateShortestPaths :: [(RouterId, Distance)] -> ShortestPath -> [ShortestPath] -> [ShortestPath]
 updateShortestPaths ((neighbourId, neibourDistance):ns) currentRoute routes = updateShortestPaths ns currentRoute updated
 	where
@@ -132,5 +133,11 @@ dijkstra graph routes = dijkstra restGraph updateShortestPathss  ---
 
 
 main = do 
-		print (show graphInput)
-		print ((dijkstra graphInput []) == resultExpected)
+		topoFileContents    <- readFile "data/topologie.ospf.topo"
+		expResFileContents  <- readFile "data/expectedResult.ospf.graph"
+		let topoInput       =  read topoFileContents :: Graph
+		let expResultInput  =  read expResFileContents :: [ShortestPath]
+		--print (show topoInput)
+		--print (show graphInput)
+		--print ((dijkstra graphInput []) == resultExpected)
+		print ((dijkstra topoInput []) == expResultInput)
