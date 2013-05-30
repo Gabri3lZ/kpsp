@@ -1,3 +1,4 @@
+
 -- der graph wie er erstellt werden sollte
 graphInput = [("a", [("b", 2), ("c", 7), ("d", 5)]),
 			("b", [("e", 2), ("f", 6), ("a", 2)]),
@@ -34,19 +35,19 @@ refreshRoute ((neighbourId, neibourDistance):ns) currentRoute routes = refreshRo
 		updated = [if (metrik == -1 || currentNodeMetrik + neibourDistance < metrik) && neighbourId == nodeId
 			then (nodeId, currentNodeMetrik + neibourDistance, currentNodeRoute ++ [currentNodeId])
 			else (nodeId, metrik, route) | (nodeId, metrik, route) <- routes]
-
 refreshRoute [] _ routes = routes
 
+-- find current route to a node
+currentRoute routes targetNode = head [(nodeId, metric, route) | (nodeId, metric, route) <- routes, nodeId == targetNode]
+
 dijkstra :: [([Char], [([Char], Integer)])] -> [([Char], Integer, [[Char]])] -> [([Char], Integer, [[Char]])] 
-dijkstra graph [] = dijkstra graph (setupRoute graph) -- einstieg
-dijkstra [] routes = routes -- basisfall
+dijkstra graph [] = dijkstra graph (setupRoute graph) -- einstieg: erstelle initiale Route table
+dijkstra [] routes = routes -- basisfall: Routentabelle erstellt
 dijkstra graph routes = dijkstra restGraph refreshRoutes  ---dijkstra (takeFromGraph (nextNodeId graph routes)) routes -- rekursionsfall
 	where
 		nextNodeId = nextNode graph routes
 		currentNode = head [(nodeId, neighbours) | (nodeId, neighbours) <- graph, nodeId == nextNodeId]
-		restGraph = [(nodeId, neighbours) | (nodeId, neighbours) <- graph, nodeId /= nextNodeId]
-		currentRoute = head [(nodeId, metrix, route) | (nodeId, metrix, route) <- routes, nodeId == nextNodeId]
-		
+		restGraph = [(nodeId, neighbours) | (nodeId, neighbours) <- graph, nodeId /= nextNodeId]		
 		(_, neighbours) = currentNode
-		refreshRoutes = refreshRoute neighbours currentRoute routes
+		refreshRoutes = refreshRoute neighbours (currentRoute routes nextNodeId) routes
 		
