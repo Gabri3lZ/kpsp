@@ -126,7 +126,6 @@ neighboursOfCurrentRouter :: RouterId -> Graph -> [(RouterId, Distance)]
 neighboursOfCurrentRouter routerId graph = head ([neighbours | (rid, neighbours) <- graph, rid == routerId])
 -- neighboursOfCurrentRouter routerId graph = snd (head (filter (\(routerID, neighbours) -> routerID == routerId) graph))
 
-
 -- |Berechung der kürzesten Pfade. Nimmt Topologie Tabelle als input Parameter und gibt eine Liste von Trippeln (ID, Metrik, Route) zurück
 dijkstra :: Graph -> [ShortestPath] -> [ShortestPath]
 dijkstra graph [] = dijkstra graph (setupRoute graph) -- einstieg: erstelle initiale Route tabledijkstra [] routes = routes -- basisfall: Routentabelle erstellt
@@ -139,11 +138,22 @@ dijkstra graph routes = dijkstra restGraph updateShortestPathss  ---
 		updateShortestPathss = updateShortestPaths neighbours (currentRoute routes nRid) routes
 
 
+-- | WORK IN PROGRESS Versuch zeug auszugeben
+printRoutingTable :: [ShortestPath] -> String -- Möglich/Sinnvoll sowas zu machen: [ShortestPath] -> IO() ?? 
+printRoutingTable (sp:xs) = prettifyShortestPath sp ++ "\n" ++ printRoutingTable xs ---- ACHTUNG NEW LINES GEHEN SO NICHT...
+printRoutingTable [] = "End"
+
+prettifyShortestPath :: ShortestPath -> String
+prettifyShortestPath (routerId, metric, routes) = "RouterId: " ++ (show routerId) ++ " Metric" ++ (show metric)
+
+
 main = do 
 		topoFileContents    <- readFile "data/topologie.ospf.topo"
 		expResFileContents  <- readFile "data/expectedResult.ospf.graph"
 		let topoInput       =  read topoFileContents :: Graph
 		let expResultInput  =  read expResFileContents :: [ShortestPath]
+		let nice = printRoutingTable expResultInput
+		print nice
 		--print (show topoInput)
 		--print (show graphInput)
 		--print ((dijkstra graphInput []) == resultExpected)
