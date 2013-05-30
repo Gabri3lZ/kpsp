@@ -1,5 +1,23 @@
 import Prelude
 
+-- Typendeklaration: Bessere lesbarkeit
+
+type Address = [Char]
+type Interface = [Char]
+type Priority = Integer
+type Dead = Integer
+type RouterId = Integer
+type Distance = Integer
+type Metric = Integer
+type Route = [RouterId]
+type ShortestPath = (RouterId, Metric, Route)
+type Graph = [(RouterId, [(RouterId, Distance)])]
+
+-- Daten Deklarationen
+data State = Down | Attempt | Init | TwoWay | ExStart | Exchange | Loading | Full
+
+
+
 -- Längen und Offset Konstanten für die LinkStateUpdates in Anzahl Bytes
 dataLinkFrameHeaderLength = 14
 
@@ -43,20 +61,21 @@ metricLength = 2
 
 
 -- der graph wie er erstellt werden sollte
-graphInput = [("a", [("b", 2), ("c", 7), ("d", 5)]),
-			("b", [("e", 2), ("f", 6), ("a", 2)]),
-			("c", [("d", 1), ("f", 3), ("a", 7)]),
-			("d", [("a", 5), ("c", 1), ("f", 4)]),
-			("e", [("b", 2), ("f", 1)]),
-			("f", [("d", 4), ("c", 3), ("b", 6), ("e", 1)])]
+graphInput = [(1, [(2, 2), (3, 100), (4, 20)]),
+			(2, [(5, 2), (6, 50), (1, 2)]),
+			(3, [(4, 1), (6, 5), (1, 100)]),
+			(4, [(1, 20), (3, 1), (6, 10)]),
+			(5, [(2, 2), (6, 1)]),
+			(6, [(4, 10), (3, 5), (2, 50), (5, 1)])]
 
 -- Das Resultat, das wir erwarten
-resultExpected = [("a", 0, []),
-					("b", 2, ["a"]),
-					("c", 6, ["a", "d"]),
-					("d", 5, ["a"]),
-					("e", 4, ["a", "b"]),
-					("f", 5, ["a", "b", "e"])]
+resultExpected :: [(RouterId, Metric, Route)]
+resultExpected = [(1, 0, []),
+					(2, 2, [1]),
+					(3, 10, [1, 2, 5, 6]),
+					(4, 11, [1, 2, 5, 6, 3]),
+					(5, 4, [1, 2]),
+					(6, 5, [1, 2, 5])]
 
 -- Initialisiere die Routes Tabelle anhand des Graphen
 setupRoute ((a,_):graph) = (a,0,[]):[(fst g, -1, []) | g <- graph]
@@ -65,12 +84,12 @@ setupRoute ((a,_):graph) = (a,0,[]):[(fst g, -1, []) | g <- graph]
 minRoute (routeIdL, weightL) (routeIdR,weightR,_) = if weightL < weightR then (routeIdL, weightL) else (routeIdR, weightR)
 
 -- NodeId mit kleinstem Gewicht
--- nextNode :: [([Char], t)] -> [([Char], Integer, t1)] -> [Char]
+nextNode :: Graph -> [ShortestPath] -> RouterId
 nextNode graph routes = nextNodeId
 	where
 		graphIds = [nodeId | (nodeId,_) <- graph]
 		possibleRoutes = [(routeId, weight, route) | (routeId, weight, route) <- routes, weight >= 0, elem routeId graphIds]
-		nextNodeId = fst (foldl minRoute ("routeId", 1000) possibleRoutes)
+		nextNodeId = fst (foldl minRoute (99, 10000) possibleRoutes)
 
 
 refreshRoute ((neighbourId, neibourDistance):ns) currentRoute routes = refreshRoute ns currentRoute updated
@@ -86,7 +105,7 @@ currentRoute routes targetNode = head [(nodeId, metric, route) | (nodeId, metric
 
 
 -- Berechung der kürzesten Pfade. Nimt Topologie Tabelle als input Parameter und gibt eine Liste von Trippeln (ID, Metrik, Route) zurück
-dijkstra :: [([Char], [([Char], Integer)])] -> [([Char], Integer, [[Char]])] -> [([Char], Integer, [[Char]])]
+dijkstra :: [(RouterId, [(RouterId, Distance)])] -> [ShortestPath] -> [ShortestPath]
 dijkstra graph [] = dijkstra graph (setupRoute graph) -- einstieg: erstelle initiale Route tabledijkstra [] routes = routes -- basisfall: Routentabelle erstellt
 dijkstra [] routes = routes -- basisfall: Routentabelle erstellt
 dijkstra graph routes = dijkstra restGraph refreshRoutes  --- 
