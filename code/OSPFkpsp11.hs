@@ -153,6 +153,11 @@ printRoutingTable' (sp:xs) = do
 prettifyShortestPath :: ShortestPath -> String
 prettifyShortestPath (routerId, metric, routes) = "RouterId: " ++ (show routerId) ++ " Metric: " ++ (show metric)
 
+--splitStringOnTab :: [Char] -> [[Char]]
+--splitStringOnTab x = doIt [] x
+--	where 
+--		doIt accu (s:'\\':'t':xs) = accu ++ [s] (doIt [(fst xs)] tail xs)
+--		doIt accu [] = accu
 
 main = do 
 		neigboursHoodTableContents <- readFile "data/neighours.ospf.tab"
