@@ -130,21 +130,28 @@ neighboursOfCurrentRouter routerId graph = head ([neighbours | (rid, neighbours)
 dijkstra :: Graph -> [ShortestPath] -> [ShortestPath]
 dijkstra graph [] = dijkstra graph (setupRoute graph) -- einstieg: erstelle initiale Route tabledijkstra [] routes = routes -- basisfall: Routentabelle erstellt
 dijkstra [] routes = routes -- basisfall: Routentabelle erstellt
-dijkstra graph routes = dijkstra restGraph updateShortestPathss  --- 
+dijkstra graph routes = dijkstra restGraph shortestPaths  --- iteration: Wende Algorithmus für jeden Router im Graphen an
 	where
 		nRid = nextRouterId graph routes
 		neighbours = neighboursOfCurrentRouter nRid graph
 		restGraph = [(routerId, neighbours) | (routerId, neighbours) <- graph, routerId /= nRid]			
-		updateShortestPathss = updateShortestPaths neighbours (currentRoute routes nRid) routes
+		shortestPaths = updateShortestPaths neighbours (currentRoute routes nRid) routes
 
 
 -- | WORK IN PROGRESS Versuch zeug auszugeben
 printRoutingTable :: [ShortestPath] -> String -- Möglich/Sinnvoll sowas zu machen: [ShortestPath] -> IO() ?? 
-printRoutingTable (sp:xs) = prettifyShortestPath sp ++ "\n" ++ printRoutingTable xs ---- ACHTUNG NEW LINES GEHEN SO NICHT...
+printRoutingTable (sp:xs) = prettifyShortestPath sp ++ "\n" ++ printRoutingTable xs -- Funktoiniert so nicht wirklich gut
 printRoutingTable [] = "End"
 
+-- |So könnte der Output funktionieren, oder?
+printRoutingTable' :: [ShortestPath] -> IO()
+printRoutingTable' [] = print "Done Printing Routing Table."
+printRoutingTable' (sp:xs) = do
+	print (prettifyShortestPath sp) 
+	printRoutingTable' xs
+
 prettifyShortestPath :: ShortestPath -> String
-prettifyShortestPath (routerId, metric, routes) = "RouterId: " ++ (show routerId) ++ " Metric" ++ (show metric)
+prettifyShortestPath (routerId, metric, routes) = "RouterId: " ++ (show routerId) ++ " Metric: " ++ (show metric)
 
 
 main = do 
@@ -152,8 +159,11 @@ main = do
 		expResFileContents  <- readFile "data/expectedResult.ospf.graph"
 		let topoInput       =  read topoFileContents :: Graph
 		let expResultInput  =  read expResFileContents :: [ShortestPath]
+		
 		let nice = printRoutingTable expResultInput
-		print nice
+		
+
+		printRoutingTable' expResultInput
 		--print (show topoInput)
 		--print (show graphInput)
 		--print ((dijkstra graphInput []) == resultExpected)
