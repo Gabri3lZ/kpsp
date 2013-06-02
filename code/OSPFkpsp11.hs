@@ -155,8 +155,13 @@ prettifyShortestPath (routerId, metric, routes) = "RouterId: " ++ (show routerId
 
 
 main = do 
+		neigboursHoodTableContents <- readFile "data/neighours.ospf.tab"
 		topoFileContents    <- readFile "data/topologie.ospf.topo"
 		expResFileContents  <- readFile "data/expectedResult.ospf.graph"
+
+		-- let neighours 		=  read neigboursHoodTableContents :: [(Address,Interface,State,RouterId,Priority,Dead)]
+		print (lines neigboursHoodTableContents) -- todo write parser (split on tabs...)
+
 		let topoInput       =  read topoFileContents :: Graph
 		let expResultInput  =  read expResFileContents :: [ShortestPath]
 		
