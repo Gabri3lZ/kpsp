@@ -27,7 +27,7 @@ type Graph = [(RouterId, [(RouterId, Distance)])]
 
 -- Daten Deklarationen
 -- |Status gem. OSPF (?)
-data State = Down | Attempt | Init | TwoWay | ExStart | Exchange | Loading | Full deriving(Show, Eq)
+data State = Down | Attempt | Init | TwoWay | ExStart | Exchange | Loading | Full deriving(Read, Show, Eq)
 
 -- Längen und Offset Konstanten für die LinkStateUpdates in Anzahl Bytes
 dataLinkFrameHeaderLength = 14
@@ -153,19 +153,29 @@ printRoutingTable' (sp:xs) = do
 prettifyShortestPath :: ShortestPath -> String
 prettifyShortestPath (routerId, metric, routes) = "RouterId: " ++ (show routerId) ++ " Metric: " ++ (show metric)
 
---splitStringOnTab :: [Char] -> [[Char]]
---splitStringOnTab x = doIt [] x
---	where 
---		doIt accu (s:'\\':'t':xs) = accu ++ [s] (doIt [(fst xs)] tail xs)
---		doIt accu [] = accu
+
+
+splitStringOnTab :: [Char] -> [[Char]]
+splitStringOnTab x = splitIt [] [] x
+	where 
+		splitIt accu curstring (x:xs) | x == '\t' = splitIt (accu ++ [curstring]) [] xs 
+								   | otherwise = splitIt accu (curstring ++ [x]) xs
+		splitIt accu [] [] = accu
+		splitIt accu curstring [] = splitIt (accu ++ [curstring]) [] []
 
 main = do 
 		neigboursHoodTableContents <- readFile "data/neighours.ospf.tab"
 		topoFileContents    <- readFile "data/topologie.ospf.topo"
 		expResFileContents  <- readFile "data/expectedResult.ospf.graph"
 
+		let wtf = head (tail (lines neigboursHoodTableContents))
+		let thing = read wtf :: (Address,Interface,State,RouterId,Priority,Dead)
+		--print thing
+		print (splitStringOnTab wtf)
+		--let wtf' = fst(wtf)
+		-- print (splitStringOnTab  (fst (lines neigboursHoodTableContents)))
 		-- let neighours 		=  read neigboursHoodTableContents :: [(Address,Interface,State,RouterId,Priority,Dead)]
-		print (lines neigboursHoodTableContents) -- todo write parser (split on tabs...)
+		--print (lines neigboursHoodTableContents) -- todo write parser (split on tabs...)
 
 		let topoInput       =  read topoFileContents :: Graph
 		let expResultInput  =  read expResFileContents :: [ShortestPath]
