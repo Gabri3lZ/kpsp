@@ -132,30 +132,31 @@ dijkstra graph [] = dijkstra graph (setupRoute graph) -- einstieg: erstelle init
 dijkstra [] routes = routes -- basisfall: Routentabelle erstellt
 dijkstra graph routes = dijkstra restGraph shortestPaths  --- iteration: Wende Algorithmus für jeden Router im Graphen an
 	where
-		nRid = nextRouterId graph routes
-		neighbours = neighboursOfCurrentRouter nRid graph
-		restGraph = [(routerId, neighbours) | (routerId, neighbours) <- graph, routerId /= nRid]			
-		shortestPaths = updateShortestPaths neighbours (currentRoute routes nRid) routes
+		nRid = nextRouterId graph routes -- id des nächsten zu bearbeitenden Routers
+		neighbours = neighboursOfCurrentRouter nRid graph -- Die Nachbarn des nächsten Routers
+		restGraph = [(routerId, neighbours) | (routerId, neighbours) <- graph, routerId /= nRid] -- Rest des Graph, alle noch nicht "markierten" (bearbeiteten) Router
+		shortestPaths = updateShortestPaths neighbours (currentRoute routes nRid) routes -- aktualisierter kürzester Pfad
 
 
 -- | WORK IN PROGRESS Versuch zeug auszugeben
-printRoutingTable :: [ShortestPath] -> String -- Möglich/Sinnvoll sowas zu machen: [ShortestPath] -> IO() ?? 
-printRoutingTable (sp:xs) = prettifyShortestPath sp ++ "\n" ++ printRoutingTable xs -- Funktoiniert so nicht wirklich gut
-printRoutingTable [] = "End"
+--printRoutingTable :: [ShortestPath] -> String -- Möglich/Sinnvoll sowas zu machen: [ShortestPath] -> IO() ?? 
+--printRoutingTable (sp:xs) = prettifyShortestPath sp ++ "\n" ++ printRoutingTable xs -- Funktoiniert so nicht wirklich gut
+--printRoutingTable [] = "End"
 
--- |So könnte der Output funktionieren, oder?
+-- |Besserer Ansatz für Ausgabefunktion
 printRoutingTable' :: [ShortestPath] -> IO()
 printRoutingTable' [] = print "Done Printing Routing Table."
 printRoutingTable' (sp:xs) = do
 	print (prettifyShortestPath sp) 
 	printRoutingTable' xs
 
+-- |Dummy Methode
 prettifyShortestPath :: ShortestPath -> String
 prettifyShortestPath (routerId, metric, routes) = "RouterId: " ++ (show routerId) ++ " Metric: " ++ (show metric)
 
 
-
-splitStringOnTab :: [Char] -> [[Char]]
+-- |Teilt einen String bei den Tabulatorenzeichen
+splitStringOnTab :: [Char] -> [String]
 splitStringOnTab x = splitIt [] [] x
 	where 
 		splitIt accu curstring (x:xs) | x == '\t' = splitIt (accu ++ [curstring]) [] xs 
@@ -163,16 +164,30 @@ splitStringOnTab x = splitIt [] [] x
 		splitIt accu [] [] = accu
 		splitIt accu curstring [] = splitIt (accu ++ [curstring]) [] []
 
+-- |Parst eine Zeile in der Nachbarschaftstabelle
+parseNeighbourTableLine :: [String] -> (Address,Interface,State,RouterId,Priority,Dead)
+parseNeighbourTableLine str = read (head str) :: (Address,Interface,State,RouterId,Priority,Dead) -- ACHTUNG FUNKTIONERT NOCH NICHT WIRKLICH
+
+
+-- |Liest die Nachbarschaftstabelle und parst diese
+readNeighbourTable :: String -> [(Address,Interface,State,RouterId,Priority,Dead)]
+readNeighbourTable fileContents = processNeighbourTable (tail (lines fileContents)) 
+	where
+		processNeighbourTable xs  = [processLine x | x <- xs  ]
+		processLine x = parseNeighbourTableLine (splitStringOnTab x)
+
+
 main = do 
 		neigboursHoodTableContents <- readFile "data/neighours.ospf.tab"
 		topoFileContents    <- readFile "data/topologie.ospf.topo"
 		expResFileContents  <- readFile "data/expectedResult.ospf.graph"
 
-		let wtf = head (tail (lines neigboursHoodTableContents))
-		let thing = read wtf :: (Address,Interface,State,RouterId,Priority,Dead)
-		--print thing
-		print (splitStringOnTab wtf)
-		--let wtf' = fst(wtf)
+		let (address,interface, state, identity, prio, dead) = head (readNeighbourTable neigboursHoodTableContents)
+		print (identity == 2) -- NO PARSE....
+		
+		--let (a,i,d,r,p,de) = read dd :: [(Address,Interface,State,RouterId,Priority,Dead)]
+		
+		--print (splitStringOnTab wtf)
 		-- print (splitStringOnTab  (fst (lines neigboursHoodTableContents)))
 		-- let neighours 		=  read neigboursHoodTableContents :: [(Address,Interface,State,RouterId,Priority,Dead)]
 		--print (lines neigboursHoodTableContents) -- todo write parser (split on tabs...)
