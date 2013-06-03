@@ -5,13 +5,13 @@ import System.IO
 
 -- Typendeklaration zur besseren Lesbarkeit der Funktionsdeklarationen
 -- |IP-Adresse eines Routers
-type Address = [Char]
+type Address = String
 -- |Das Interface des Routers
-type Interface = [Char]
+type Interface = String
 -- |Priorität des Protokoll
 type Priority = Integer
 -- |Timeout bis Route erneuert werden muss (?)
-type Dead = Integer
+type Dead = Integer 
 -- |ID des Routers gemäss dem OSPF-Protokoll
 type RouterId = Integer
 -- |Die Distanz zwischen zwei Routern 
@@ -23,7 +23,7 @@ type Route = [RouterId]
 -- |Beschreibung eines kürzesten Pfad zu einer Route
 type ShortestPath = (RouterId, Metric, Route)
 -- |Der Graph beschreibt die Netzwerktopologie
-type Graph = [(RouterId, [(RouterId, Distance)])]
+type Graph = [(RouterId, [(RouterId, Distance)])] 
 
 -- Daten Deklarationen
 -- |Status gem. OSPF (?)
@@ -150,6 +150,7 @@ printRoutingTable' (sp:xs) = do
 	print (prettifyShortestPath sp) 
 	printRoutingTable' xs
 
+
 -- |Dummy Methode
 prettifyShortestPath :: ShortestPath -> String
 prettifyShortestPath (routerId, metric, routes) = "RouterId: " ++ (show routerId) ++ " Metric: " ++ (show metric)
@@ -165,13 +166,13 @@ splitStringOnTab x = splitIt [] [] x
 		splitIt accu curstring [] = splitIt (accu ++ [curstring]) [] []
 
 -- |Parst eine Zeile in der Nachbarschaftstabelle
-parseNeighbourTableLine :: [String] -> (Address,Interface,State,RouterId,Priority,Dead)
-parseNeighbourTableLine str = read (head str) :: (Address,Interface,State,RouterId,Priority,Dead) -- ACHTUNG FUNKTIONERT NOCH NICHT WIRKLICH
+parseNeighbourTableLine :: [[Char]] -> (Address,Interface,State,RouterId,Priority,Dead)
+parseNeighbourTableLine (a:i:s:r:p:d:[])  = (a, i, read s, read r,read p, read d) :: (Address,Interface,State,RouterId,Priority,Dead) -- Konvertieren auf den richtigen Typ. Vorsicht bei von [Char] abgeleiteten typen
 
 
 -- |Liest die Nachbarschaftstabelle und parst diese
 readNeighbourTable :: String -> [(Address,Interface,State,RouterId,Priority,Dead)]
-readNeighbourTable fileContents = processNeighbourTable (tail (lines fileContents)) 
+readNeighbourTable fileContents = processNeighbourTable (tail (lines fileContents))  -- ignoriere erste zeile
 	where
 		processNeighbourTable xs  = [processLine x | x <- xs  ]
 		processLine x = parseNeighbourTableLine (splitStringOnTab x)
@@ -181,23 +182,18 @@ main = do
 		neigboursHoodTableContents <- readFile "data/neighours.ospf.tab"
 		topoFileContents    <- readFile "data/topologie.ospf.topo"
 		expResFileContents  <- readFile "data/expectedResult.ospf.graph"
-
-		let (address,interface, state, identity, prio, dead) = head (readNeighbourTable neigboursHoodTableContents)
-		print (identity == 2) -- NO PARSE....
 		
-		--let (a,i,d,r,p,de) = read dd :: [(Address,Interface,State,RouterId,Priority,Dead)]
+		let neigboursHoodTable = readNeighbourTable neigboursHoodTableContents
 		
-		--print (splitStringOnTab wtf)
-		-- print (splitStringOnTab  (fst (lines neigboursHoodTableContents)))
-		-- let neighours 		=  read neigboursHoodTableContents :: [(Address,Interface,State,RouterId,Priority,Dead)]
-		--print (lines neigboursHoodTableContents) -- todo write parser (split on tabs...)
+		--- just show first entry
+		let (address,interface, state, identity, prio, dead) = head neigboursHoodTable
+		print (address,interface, state, identity, prio, dead) -- nur zur show...
+		
 
 		let topoInput       =  read topoFileContents :: Graph
 		let expResultInput  =  read expResFileContents :: [ShortestPath]
 		
-		let nice = printRoutingTable expResultInput
 		
-
 		printRoutingTable' expResultInput
 		--print (show topoInput)
 		--print (show graphInput)
