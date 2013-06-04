@@ -93,11 +93,12 @@ metricLength = 2
 
 -- |Datei Pfade zu allen Link State Update Files die verwendet werden sollen
 lsuFilePaths :: [FilePath]
-lsuFilePaths = ["data/lsu1.txt", "data/lsu2.txt", "data/lsu3.txt", "data/lsu4.txt", "data/lsu5.txt"]
+lsuFilePaths = ["data/lsu1.txt", "data/lsu2.txt", "data/lsu3.txt", "data/lsu4.txt", "data/lsu5.txt"] 
 
 
 ---------------------------------------------------------------------------------------------------------
 -- Funktionen für das Parsen und Auswerten von Link State Update Files
+
 
 -- |Nimt einen Hex-String entgegen und parst diesen in eine IP-Adresse
 -- |Parameter 1: Hex-String (IP Adresse)
@@ -410,7 +411,7 @@ prettifyShortestPath (routerId, metric, routes) = "RouterId: " ++ (show routerId
 ---------------------------------------------------------------------------------------------------------
 -- Funktoinen für die Nachbarschaftstabelle
 
--- |Teilt einen String bei den Tabulatorenzeichen
+-- |Teilt einen String an den Tabulatorenzeichen
 splitStringOnTab :: [Char] -> [String]
 splitStringOnTab x = splitIt [] [] x
 	where
@@ -421,9 +422,8 @@ splitStringOnTab x = splitIt [] [] x
 
 -- |Parst eine Zeile in der Nachbarschaftstabelle
 parseNeighbourTableLine :: [[Char]] -> (Address,Interface,State,RouterId,Priority,Dead)
--- Konvertieren auf den richtigen Typ. Vorsicht bei von [Char] abgeleiteten typen
-parseNeighbourTableLine (a:i:s:r:p:d:[])  = (a, i, read s, r, read p, read d) :: (Address,Interface,State,RouterId,Priority,Dead)
-
+parseNeighbourTableLine (a:i:s:r:p:d:[])  = (a, i, read s, r, read p, read d) :: (Address,Interface,State,RouterId,Priority,Dead) 
+											-- Konvertieren auf den richtigen Typ. Vorsicht bei von [Char] abgeleiteten typen
 
 -- |Liest die Nachbarschaftstabelle (in Tabellenform) aus einem File ein und parst diese in eine Liste mit Nachbarn und deren Eigenschaften
 readNeighbourTable :: String -> [(Address,Interface,State,RouterId,Priority,Dead)]
