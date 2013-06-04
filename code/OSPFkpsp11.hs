@@ -11,7 +11,7 @@ type Address = String
 type Interface = String
 -- |Priorität des Protokoll
 type Priority = Int
--- |Timeout bis Route erneuert werden muss (?)
+-- |Timeout bis Route erneuert werden muss
 type Dead = Int
 -- |ID des Routers gemäss dem OSPF-Protokoll
 type RouterId = String
@@ -29,8 +29,12 @@ type ShortestPath = (RouterId, Metric, Route)
 type Graph = [(RouterId, [ChildNode])]
 
 -- Daten Deklarationen
--- |Status gem. OSPF (?)
+-- |Status der Verbindung gemäss OSPF
 data State = Down | Attempt | Init | TwoWay | ExStart | Exchange | Loading | Full deriving(Read, Show, Eq)
+
+
+---------------------------------------------------------------------------------------------------------
+-- KONSTANTENDEKLARATION
 
 -- Längen und Offset Konstanten für die LinkStateUpdates in Anzahl Bytes
 -- |Header Länge (in Byte) des Data Link Frames
@@ -87,9 +91,13 @@ metricOffset = 10
 -- |Länge (in Byte) der Metrik
 metricLength = 2
 
--- |Datei Pfade zu allen Link State Updates die verwendet werden sollen
+-- |Datei Pfade zu allen Link State Update Files die verwendet werden sollen
 lsuFilePaths :: [FilePath]
 lsuFilePaths = ["data/lsu1.txt", "data/lsu2.txt", "data/lsu3.txt", "data/lsu4.txt", "data/lsu5.txt"]
+
+
+---------------------------------------------------------------------------------------------------------
+-- Funktionen für das Parsen und Auswerten von Link State Update Files
 
 -- |Nimt einen Hex-String entgegen und parst diesen in eine IP-Adresse
 -- |Parameter 1: Hex-String (IP Adresse)
@@ -326,6 +334,9 @@ buildTopoGraph = do
 	let graph = [lsu1, lsu2, lsu3, lsu4, lsu5, lsu6]
 	return graph
 
+---------------------------------------------------------------------------------------------------------
+-- Funktionen für den Shortest Path Algorithmus
+
 -- |Initialisiere die Routes Tabelle anhand des Graphen. Die Metriken für jeden Pfad werden mit -1 initialisiert
 setupRoute :: Graph -> [ShortestPath]
 setupRoute ((a,_):graph) = (a,0,[]):[(fst g, -1, []) | g <- graph]
@@ -379,6 +390,10 @@ dijkstra graph routes = dijkstra restGraph shortestPaths  --- iteration: Wende A
 		restGraph = [(routerId, neighbours) | (routerId, neighbours) <- graph, routerId /= nRid] -- Rest des Graph, alle noch nicht "markierten" (bearbeiteten) Router
 		shortestPaths = updateShortestPaths neighbours (currentRoute routes nRid) routes -- aktualisierter kürzester Pfad
 
+---------------------------------------------------------------------------------------------------------
+-- Funktionen für die Ausgabe
+
+
 -- |Besserer Ansatz für Ausgabefunktion
 printRoutingTable :: [ShortestPath] -> IO()
 printRoutingTable [] = putStrLn ""
@@ -391,6 +406,9 @@ printRoutingTable (sp:xs) = do
 prettifyShortestPath :: ShortestPath -> String
 prettifyShortestPath (routerId, metric, routes) = "RouterId: " ++ (show routerId) ++ " Metric: " ++ (show metric)
 
+
+---------------------------------------------------------------------------------------------------------
+-- Funktoinen für die Nachbarschaftstabelle
 
 -- |Teilt einen String bei den Tabulatorenzeichen
 splitStringOnTab :: [Char] -> [String]
@@ -414,6 +432,8 @@ readNeighbourTable fileContents = processNeighbourTable (tail (lines fileContent
 		processNeighbourTable xs  = [processLine x | x <- xs  ]
 		processLine x = parseNeighbourTableLine (splitStringOnTab x)
 
+
+-- |Das Programm
 main = do
 		neighboursTableContents <- readFile "data/neighboursTable.txt"
 		expectedResultFileContents  <- readFile "data/expectedResult.txt"
