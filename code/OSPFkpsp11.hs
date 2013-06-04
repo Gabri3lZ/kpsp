@@ -430,7 +430,7 @@ printRoutingTable (sp:xs) neighboursTable = do
 -- |Schreibt den Graphen auf die Konsole
 printGraph :: Graph -> IO()
 printGraph ((rid, children):xs) = do
-	putStrLn (show rid ++ " \nhas neighbours:" ++ (formatNeighbours children) ++ "\n" )
+	putStrLn ("Router: " ++ rid ++ " \nhas neighbours:" ++ (formatNeighbours children) ++ "\n" )
 	printGraph xs
 	where
 		formatNeighbours ns = concat ["\n\tRouter: " ++ (show rid) ++ " Distance: " ++ (show dist) | (rid, dist) <- ns ]
