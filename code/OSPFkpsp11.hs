@@ -25,8 +25,14 @@ type Route = [RouterId]
 type ChildNode = (RouterId, Distance)
 -- |Beschreibung eines kürzesten Pfad zu einer Route
 type ShortestPath = (RouterId, Metric, Route)
+-- |Beschreibt einen Eintrag in der Nachbarschaftstabelle
+type NeighboursTableEntry = (Address, Interface, State, RouterId, Priority, Dead)
+-- |Beschreibt einen Eintrag im Topologie Graphen
+type GraphEntry = (RouterId, [ChildNode])
+-- |Beschreibt die Nachbarschaftstabelle der Routers, dessen Rolle diese Applikation eingenommen hat
+type NeighboursTable = [NeighboursTableEntry]
 -- |Der Graph beschreibt die Netzwerktopologie
-type Graph = [(RouterId, [ChildNode])]
+type Graph = [GraphEntry]
 
 -- Daten Deklarationen
 -- |Status der Verbindung gemäss OSPF
@@ -90,11 +96,6 @@ childRouterIdLength = 4
 metricOffset = 10
 -- |Länge (in Byte) der Metrik
 metricLength = 2
-
--- |Datei Pfade zu allen Link State Update Files die verwendet werden sollen
-lsuFilePaths :: [FilePath]
-lsuFilePaths = ["data/lsu1.txt", "data/lsu2.txt", "data/lsu3.txt", "data/lsu4.txt", "data/lsu5.txt"] 
-
 
 ---------------------------------------------------------------------------------------------------------
 -- Funktionen für das Parsen und Auswerten von Link State Update Files
@@ -298,7 +299,7 @@ extractChildNodes lsu numOfLsa nthLsa lengths types [] nthLink childNodes = chil
 
 -- |Liest ein LinkStateUpdate aus einem File ein und gibt die Topologie Tabelle (Graph) als Liste zurück
 -- |Parameter 1: Datei Pfad zum Link State Update File das eingelesen werden soll
-readLinkStateUpdate :: FilePath -> IO (RouterId, [ChildNode])
+readLinkStateUpdate :: FilePath -> IO GraphEntry
 readLinkStateUpdate filePath = do
 	update <- readFile filePath
 	let upperUpdate = map toUpper update
@@ -324,7 +325,7 @@ readLinkStateUpdate filePath = do
 	return (routerId, childNodes)
 
 -- |Liest alle definierten Link State Updates ein und baut daraus den Topology Graph
-buildTopoGraph :: IO [(RouterId, [ChildNode])]
+buildTopoGraph :: IO [GraphEntry]
 buildTopoGraph = do
 	lsu1 <- readLinkStateUpdate "data/lsu1.txt"
 	lsu2 <- readLinkStateUpdate "data/lsu2.txt"
@@ -395,24 +396,42 @@ dijkstra graph routes = dijkstra restGraph shortestPaths  --- iteration: Wende A
 -- Funktionen für die Ausgabe
 
 
--- |Besserer Ansatz für Ausgabefunktion
-printRoutingTable :: [ShortestPath] -> IO()
-printRoutingTable [] = putStrLn ""
-printRoutingTable (sp:xs) = do
-	putStrLn (prettifyShortestPath sp)
-	printRoutingTable xs
-
-
--- |Dummy Methode
-prettifyShortestPath :: ShortestPath -> String
-prettifyShortestPath (routerId, metric, routes) = "RouterId: " ++ (show routerId) ++ " Metric: " ++ (show metric)
-
+-- |Generiert die Routing Tabelle und schreibt diese auf die Konsole
+printRoutingTable :: [ShortestPath] -> NeighboursTable -> IO()
+printRoutingTable [] _ = putStrLn ""
+printRoutingTable (sp:xs) neighboursTable = do
+	let routerId = getRouterId sp
+	let metric = getMetric sp
+	let via = getVia sp routerId
+	let neighbourEntry = getNeighboursTableEntry via neighboursTable
+	let dead = getDeadFromNeighboursTable neighbourEntry
+	let interface = getInterfaceFromNeighboursTable neighbourEntry
+	if (via == "own")
+		then
+			putStr ""
+		else
+			if (via == routerId)
+				then
+					putStrLn ("C " ++ routerId ++ "/24 is directly connected, " ++ interface)
+				else
+					putStrLn ("O " ++ routerId ++ "/24 [110/" ++ (show metric) ++ "] via " ++ via ++ ", 00:00:" ++ (show dead) ++ ", " ++ interface)
+	printRoutingTable xs neighboursTable
+	where
+		getRouterId (routerId,_,_) = routerId
+		getMetric (_,metric,_) = metric
+		getVia (_,_,(r0:r1:rs)) _ = r1
+		getVia (_,_,[]) _ = "own"
+		getVia (_,_,(r:[])) rid = rid
+		getNeighboursTableEntry rid (r:rs) =  if ((getRouterIdFromNeighboursTable r) == rid) then r else getNeighboursTableEntry rid rs
+		getInterfaceFromNeighboursTable (_,i,_,_,_,_) = i
+		getRouterIdFromNeighboursTable (_,_,_,r,_,_) = r
+		getDeadFromNeighboursTable (_,_,_,_,_,d) = d
 
 ---------------------------------------------------------------------------------------------------------
 -- Funktoinen für die Nachbarschaftstabelle
 
 -- |Teilt einen String an den Tabulatorenzeichen
-splitStringOnTab :: [Char] -> [String]
+splitStringOnTab :: String -> [String]
 splitStringOnTab x = splitIt [] [] x
 	where
 		splitIt accu curstring (x:xs) | x == '\t' = splitIt (accu ++ [curstring]) [] xs
@@ -421,12 +440,12 @@ splitStringOnTab x = splitIt [] [] x
 		splitIt accu curstring [] = splitIt (accu ++ [curstring]) [] []
 
 -- |Parst eine Zeile in der Nachbarschaftstabelle
-parseNeighbourTableLine :: [[Char]] -> (Address,Interface,State,RouterId,Priority,Dead)
-parseNeighbourTableLine (a:i:s:r:p:d:[])  = (a, i, read s, r, read p, read d) :: (Address,Interface,State,RouterId,Priority,Dead) 
+parseNeighbourTableLine :: [String] -> NeighboursTableEntry
+parseNeighbourTableLine (a:i:s:r:p:d:[])  = (a, i, read s, r, read p, read d) :: (Address,Interface,State,RouterId,Priority,Dead)
 											-- Konvertieren auf den richtigen Typ. Vorsicht bei von [Char] abgeleiteten typen
 
 -- |Liest die Nachbarschaftstabelle (in Tabellenform) aus einem File ein und parst diese in eine Liste mit Nachbarn und deren Eigenschaften
-readNeighbourTable :: String -> [(Address,Interface,State,RouterId,Priority,Dead)]
+readNeighbourTable :: String -> NeighboursTable
 readNeighbourTable fileContents = processNeighbourTable (tail (lines fileContents))  -- ignoriere erste zeile
 	where
 		processNeighbourTable xs  = [processLine x | x <- xs  ]
@@ -441,10 +460,14 @@ main = do
 
 		let neighboursTable = readNeighbourTable neighboursTableContents
 		let expectedResultInput  =  read expectedResultFileContents :: [ShortestPath]
+		let shortestPaths = dijkstra topoGraphInput []
 
 		putStrLn "\n***** Topology Graph *****"
 		putStrLn (show topoGraphInput)
+		putStrLn "\n***** Shortest Paths *****"
+		putStrLn (show shortestPaths)
 		putStrLn "\n***** Routing Table *****"
-		printRoutingTable expectedResultInput
+		printRoutingTable shortestPaths neighboursTable
 		putStrLn "***** Test Result *****"
-		print ((dijkstra topoGraphInput []) == expectedResultInput)
+		print (shortestPaths == expectedResultInput)
+		putStrLn ""
