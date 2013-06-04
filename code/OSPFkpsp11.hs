@@ -322,9 +322,9 @@ readLinkStateUpdate filePath = do
 	let graphEntry = (routerId, childNodes)
 	return graphEntry
 
-readLinkStateUpdates :: Monad m => [FilePath] -> m [IO (RouterId, [ChildNode])]
+readLinkStateUpdates :: [FilePath] -> [IO (RouterId, [ChildNode])]
 readLinkStateUpdates filePaths = do
-	let graph = map readLinkStateUpdate filePaths
+	graph <- map readLinkStateUpdate filePaths
 	return graph
 
 
@@ -437,9 +437,9 @@ readNeighbourTable fileContents = processNeighbourTable (tail (lines fileContent
 main = do
 		neigboursHoodTableContents <- readFile "data/neighours.ospf.tab"
 		topoFileContents    <- readFile "data/topologie.ospf.topo"
-		topoGraph <- readLinkStateUpdates lsuFilePaths
 		expResFileContents  <- readFile "data/expectedResult.ospf.graph"
 
+		let topoGraph = readLinkStateUpdates lsuFilePaths
 		let neigboursHoodTable = readNeighbourTable neigboursHoodTableContents
 
 		--- just show first entry
