@@ -427,8 +427,17 @@ printRoutingTable (sp:xs) neighboursTable = do
 		getRouterIdFromNeighboursTable (_,_,_,r,_,_) = r
 		getDeadFromNeighboursTable (_,_,_,_,_,d) = d
 
+-- |Schreibt den Graphen auf die Konsole
+printGraph :: Graph -> IO()
+printGraph ((rid, children):xs) = do
+	putStrLn (show rid ++ " - has neighbours: [" ++ (formatNeighbours children) ++ " ]" )
+	printGraph xs
+	where
+		formatNeighbours ns = concat [" Router: " ++ (show rid) ++ " Distance: " ++ (show dist) | (rid, dist) <- ns ]
+printGraph [] = do putStr ""
+
 ---------------------------------------------------------------------------------------------------------
--- Funktoinen für die Nachbarschaftstabelle
+-- Funktionen für die Nachbarschaftstabelle
 
 -- |Teilt einen String an den Tabulatorenzeichen
 splitStringOnTab :: String -> [String]
@@ -462,8 +471,9 @@ main = do
 		let expectedResultInput  =  read expectedResultFileContents :: [ShortestPath]
 		let shortestPaths = dijkstra topoGraphInput []
 
+
 		putStrLn "\n***** Topology Graph *****"
-		putStrLn (show topoGraphInput)
+		printGraph topoGraphInput
 		putStrLn "\n***** Shortest Paths *****"
 		putStrLn (show shortestPaths)
 		putStrLn "\n***** Routing Table *****"
