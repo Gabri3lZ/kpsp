@@ -420,8 +420,6 @@ main = do
 		topoGraphInput <- buildTopoGraph
 
 		let neighboursTable = readNeighbourTable neighboursTableContents
-
-
 		let expectedResultInput  =  read expectedResultFileContents :: [ShortestPath]
 
 		putStrLn "\n***** Topology Graph *****"
