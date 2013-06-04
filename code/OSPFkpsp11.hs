@@ -312,39 +312,19 @@ readLinkStateUpdate filePath = do
 	let childNodes = if (numbersOfLinks /= [])
 		then extractChildNodes upperUpdate numberOfLsa 1 lsaLengths lsaTypes numbersOfLinks 1 []
 		else []
-	print ("messageType:    " ++ (show messageType))
-	print ("routerId:       " ++ routerId)
-	print ("numberOfLsa:    " ++ (show numberOfLsa))
-	print ("lsaLengths:     " ++ (show lsaLengths))
-	print ("lsaTypes:       " ++ (show lsaTypes))
-	print ("numbersOfLinks: " ++ (show numbersOfLinks))
-	print ("childNodes:     " ++ (show childNodes))
-	let graphEntry = (routerId, childNodes)
-	return graphEntry
+	return (routerId, childNodes)
 
-readLinkStateUpdates :: [FilePath] -> [IO (RouterId, [ChildNode])]
-readLinkStateUpdates filePaths = do
-	graph <- map readLinkStateUpdate filePaths
+-- |Liest alle definierten Link State Updates ein und baut daraus den Topology Graph
+buildTopoGraph :: IO [(RouterId, [ChildNode])]
+buildTopoGraph = do
+	lsu1 <- readLinkStateUpdate "data/lsu1.txt"
+	lsu2 <- readLinkStateUpdate "data/lsu2.txt"
+	lsu3 <- readLinkStateUpdate "data/lsu3.txt"
+	lsu4 <- readLinkStateUpdate "data/lsu4.txt"
+	lsu5 <- readLinkStateUpdate "data/lsu5.txt"
+	lsu6 <- readLinkStateUpdate "data/lsu6.txt"
+	let graph = [lsu1, lsu2, lsu3, lsu4, lsu5, lsu6]
 	return graph
-
-
--- |Der graph wie er erstellt werden sollte
-graphInput :: [(RouterId, [ChildNode])]
-graphInput = [("192.168.1.1", [("192.168.1.2", 2), ("192.168.1.3", 100), ("192.168.1.4", 20)]),
-			("192.168.1.2", [("192.168.1.5", 2), ("192.168.1.6", 50), ("192.168.1.1", 2)]),
-			("192.168.1.3", [("192.168.1.4", 1), ("192.168.1.6", 5), ("192.168.1.1", 100)]),
-			("192.168.1.4", [("192.168.1.1", 20), ("192.168.1.3", 1), ("192.168.1.6", 10)]),
-			("192.168.1.5", [("192.168.1.2", 2), ("192.168.1.6", 1)]),
-			("192.168.1.6", [("192.168.1.4", 10), ("192.168.1.3", 5), ("192.168.1.2", 50), ("192.168.1.5", 1)])]
-
--- |Das Resultat, das wir erwarten in unserem Anwendungsfall
-resultExpected :: [ShortestPath]
-resultExpected = [("192.168.1.1", 0, []),
-					("192.168.1.2", 2, ["192.168.1.1"]),
-					("192.168.1.3", 10, ["192.168.1.1", "192.168.1.2", "192.168.1.5", "192.168.1.6"]),
-					("192.168.1.4", 11, ["192.168.1.1", "192.168.1.2", "192.168.1.5", "192.168.1.6", "192.168.1.3"]),
-					("192.168.1.5", 4, ["192.168.1.1", "192.168.1.2"]),
-					("192.168.1.6", 5, ["192.168.1.1", "192.168.1.2", "192.168.1.5"])]
 
 -- |Initialisiere die Routes Tabelle anhand des Graphen. Die Metriken für jeden Pfad werden mit -1 initialisiert
 setupRoute :: Graph -> [ShortestPath]
@@ -401,9 +381,9 @@ dijkstra graph routes = dijkstra restGraph shortestPaths  --- iteration: Wende A
 
 -- |Besserer Ansatz für Ausgabefunktion
 printRoutingTable :: [ShortestPath] -> IO()
-printRoutingTable [] = print "Done Printing Routing Table."
+printRoutingTable [] = putStrLn ""
 printRoutingTable (sp:xs) = do
-	print (prettifyShortestPath sp)
+	putStrLn (prettifyShortestPath sp)
 	printRoutingTable xs
 
 
@@ -435,24 +415,18 @@ readNeighbourTable fileContents = processNeighbourTable (tail (lines fileContent
 		processLine x = parseNeighbourTableLine (splitStringOnTab x)
 
 main = do
-		neigboursHoodTableContents <- readFile "data/neighours.ospf.tab"
-		topoFileContents    <- readFile "data/topologie.ospf.topo"
-		expResFileContents  <- readFile "data/expectedResult.ospf.graph"
+		neighboursTableContents <- readFile "data/neighboursTable.txt"
+		expectedResultFileContents  <- readFile "data/expectedResult.txt"
+		topoGraphInput <- buildTopoGraph
 
-		let topoGraph = readLinkStateUpdates lsuFilePaths
-		let neigboursHoodTable = readNeighbourTable neigboursHoodTableContents
-
-		--- just show first entry
-		let (address,interface, state, identity, prio, dead) = head neigboursHoodTable
-		print (address,interface, state, identity, prio, dead) -- nur zur show...
+		let neighboursTable = readNeighbourTable neighboursTableContents
 
 
-		let topoInput       =  read topoFileContents :: Graph
-		let expResultInput  =  read expResFileContents :: [ShortestPath]
+		let expectedResultInput  =  read expectedResultFileContents :: [ShortestPath]
 
-
-		printRoutingTable expResultInput
-		--print (show topoInput)
-		--print (show graphInput)
-		--print ((dijkstra graphInput []) == resultExpected)
-		print ((dijkstra topoInput []) == expResultInput)
+		putStrLn "\n***** Topology Graph *****"
+		putStrLn (show topoGraphInput)
+		putStrLn "\n***** Routing Table *****"
+		printRoutingTable expectedResultInput
+		putStrLn "***** Test Result *****"
+		print ((dijkstra topoGraphInput []) == expectedResultInput)
