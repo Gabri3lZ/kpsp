@@ -1,3 +1,15 @@
+---------------------------------------------------------------------------------------------------------
+-- | 
+-- Module      :  OSPFkpsp11
+--
+-- Authors     :  Gruppe 11: Gabriel Zimmerli, Reto Lehnherr
+--
+-- Source      :  https://github.com/Gabriel-Z/kpsp
+--
+-- OSPFkpsp: Simulation des OSPF Protokoll in Haskell
+--
+-- Projektarbeit im Modul «Konzepte von Programmiersprachen» bei Edgar Lederer, FHNW
+---------------------------------------------------------------------------------------------------------
 module OSPFkpsp11 where
 
 import Prelude
@@ -5,37 +17,38 @@ import System.IO
 import Data.Char
 
 -- Typendeklaration zur besseren Lesbarkeit der Funktionsdeklarationen
--- |IP-Adresse eines Routers
+---------------------------------------------------------------------------------------------------------
+-- | IP-Adresse eines Routers
 type Address = String
--- |Das Interface des Routers
+-- | Das Interface des Routers
 type Interface = String
--- |Priorität des Protokoll
+-- | Priorität des Protokoll
 type Priority = Int
--- |Timeout bis Route erneuert werden muss
+-- | Timeout bis Route erneuert werden muss
 type Dead = Int
--- |ID des Routers gemäss dem OSPF-Protokoll
+-- | ID des Routers gemäss dem OSPF-Protokoll
 type RouterId = String
--- |Die Distanz zwischen zwei Routern
+-- | Die Distanz zwischen zwei Routern
 type Distance = Int
--- |Das Gewicht des nach OSPF gewichteten Pfades (Aufsummierung der Distanzen auf Pfad)
+-- | Das Gewicht des nach OSPF gewichteten Pfades (Aufsummierung der Distanzen auf Pfad)
 type Metric = Int
--- |Liste mit den Hops, welche auf dem Pfad gemacht werden müssen
+-- | Liste mit den Hops, welche auf dem Pfad gemacht werden müssen
 type Route = [RouterId]
--- |Beschreibt einen Kind Router bezogen zu seinem Eltern Router
+-- | Beschreibt einen Kind Router bezogen zu seinem Eltern Router
 type ChildNode = (RouterId, Distance)
--- |Beschreibung eines kürzesten Pfad zu einer Route
+-- | Beschreibung eines kürzesten Pfad zu einer Route
 type ShortestPath = (RouterId, Metric, Route)
--- |Beschreibt einen Eintrag in der Nachbarschaftstabelle
+-- | Beschreibt einen Eintrag in der Nachbarschaftstabelle
 type NeighboursTableEntry = (Address, Interface, State, RouterId, Priority, Dead)
--- |Beschreibt einen Eintrag im Topologie Graphen
+-- | Beschreibt einen Eintrag im Topologie Graphen
 type GraphEntry = (RouterId, [ChildNode])
--- |Beschreibt die Nachbarschaftstabelle der Routers, dessen Rolle diese Applikation eingenommen hat
+-- | Beschreibt die Nachbarschaftstabelle der Routers, dessen Rolle diese Applikation eingenommen hat
 type NeighboursTable = [NeighboursTableEntry]
--- |Der Graph beschreibt die Netzwerktopologie
+-- | Der Graph beschreibt die Netzwerktopologie
 type Graph = [GraphEntry]
 
 -- Daten Deklarationen
--- |Status der Verbindung gemäss OSPF
+-- | Status der Verbindung gemäss OSPF
 data State = Down | Attempt | Init | TwoWay | ExStart | Exchange | Loading | Full deriving(Read, Show, Eq)
 
 
@@ -43,99 +56,99 @@ data State = Down | Attempt | Init | TwoWay | ExStart | Exchange | Loading | Ful
 -- KONSTANTENDEKLARATION
 
 -- Längen und Offset Konstanten für die LinkStateUpdates in Anzahl Bytes
--- |Header Länge (in Byte) des Data Link Frames
+-- | Header Länge (in Byte) des Data Link Frames
 dataLinkFrameHeaderLength = 14
 
--- |Header Länge (in Byte) des IP Packet
+-- | Header Länge (in Byte) des IP Packet
 ipPacketHeaderLength = 20
 
--- |Header Länge (in Byte) des OSPF Packet
+-- | Header Länge (in Byte) des OSPF Packet
 ospfPacketHeaderLength = 24
--- |Offset (in Byte) vom Anfang des OSPF Packet bis zum Message Type
+-- | Offset (in Byte) vom Anfang des OSPF Packet bis zum Message Type
 messageTypeOffset = 1
--- |Länge (in Byte) des Message Types
+-- | Länge (in Byte) des Message Types
 messageTypeLength = 1
--- |Offset (in Byte) vom Anfang des OSPF Packet bis zur Router ID
+-- | Offset (in Byte) vom Anfang des OSPF Packet bis zur Router ID
 routerIdOffset = 4
--- |Länge (in Byte) der Router ID
+-- | Länge (in Byte) der Router ID
 routerIdLength = 4
 
 
--- |Header Länge (in Byte) des Link State Update Packet
+-- | Header Länge (in Byte) des Link State Update Packet
 lsuHeaderLength = 4
--- |Offset (in Byte) vom Anfang des Link State Update Headers bis zur Anzahl Link State Advertisements
+-- | Offset (in Byte) vom Anfang des Link State Update Headers bis zur Anzahl Link State Advertisements
 numberOfLsaOffset = 0
--- |Länge (in Byte) der Anzahl Link State Advertisements
+-- | Länge (in Byte) der Anzahl Link State Advertisements
 numberOfLsaLength = 4
 
--- |Header Länge (in Byte) des Link State Advertisement Packet
+-- | Header Länge (in Byte) des Link State Advertisement Packet
 lsaHeaderLength = 20
--- |Offset (in Byte) vom Anfang des Link State Advertisement Headers bis zum LSA-Type
+-- | Offset (in Byte) vom Anfang des Link State Advertisement Headers bis zum LSA-Type
 lsaTypeOffset = 3
--- |Länge (in Byte) des LSA-Type
+-- | Länge (in Byte) des LSA-Type
 lsaTypeLength = 1
--- |Offset (in Byte) vom Anfang des Link State Advertisement Headers bis zur Link State Advertisement Länge
+-- | Offset (in Byte) vom Anfang des Link State Advertisement Headers bis zur Link State Advertisement Länge
 lsaLengthOffset = 18
--- |Länge (in Byte) der Link State Advertisement Länge
+-- | Länge (in Byte) der Link State Advertisement Länge
 lsaLengthLength = 2
 
--- |Content Länge (in Byte) des Link State Advertisement Packet (ohne die einzelnen Links)
+-- | Content Länge (in Byte) des Link State Advertisement Packet (ohne die einzelnen Links)
 lsaContentLength = 4
--- |Offset (in Byte) vom Anfang des Link State Advertisement Contents bis zu den Anzahl Links
+-- | Offset (in Byte) vom Anfang des Link State Advertisement Contents bis zu den Anzahl Links
 numberOfLinksOffset = 2
--- |Länge (in Byte) der Anzahl Links
+-- | Länge (in Byte) der Anzahl Links
 numberOfLinksLength = 2
 
--- |Länge (in Bytes) eines Links
+-- | Länge (in Bytes) eines Links
 linkLength = 12
--- |Offset (in Byte) vom Anfang des Links bis zur ID des Child Routers
+-- | Offset (in Byte) vom Anfang des Links bis zur ID des Child Routers
 childRouterIdOffset = 0
--- |Länge (in Byte) der Child Router ID
+-- | Länge (in Byte) der Child Router ID
 childRouterIdLength = 4
--- |Offset (in Byte) vom Anfang des Links bis zur Metrik
+-- | Offset (in Byte) vom Anfang des Links bis zur Metrik
 metricOffset = 10
--- |Länge (in Byte) der Metrik
+-- | Länge (in Byte) der Metrik
 metricLength = 2
 
 ---------------------------------------------------------------------------------------------------------
 -- Funktionen für das Parsen und Auswerten von Link State Update Files
 
 
--- |Nimt einen Hex-String entgegen und parst diesen in eine IP-Adresse
--- |Parameter 1: Hex-String (IP Adresse)
+-- | Nimt einen Hex-String entgegen und parst diesen in eine IP-Adresse
+-- | Parameter 1: Hex-String (IP Adresse)
 hexToIp :: String -> String
 hexToIp (x:y:[]) = show ((digitToInt x) * 16 + digitToInt y)
 hexToIp (x:y:zs) = show ((digitToInt x) * 16 + digitToInt y) ++ "." ++ hexToIp zs
 
--- |Nimt einen Hex-String entgegen und parst diesen in einen Int
--- |Parameter 1: Hex-String
+-- | Nimt einen Hex-String entgegen und parst diesen in einen Int
+-- | Parameter 1: Hex-String
 hexToInt :: String -> Int
 hexToInt [] = 0
 hexToInt (x:xs) = (digitToInt x) * 16 ^ (length xs) + hexToInt xs
 
--- |Extrahiert aus einem Link State Update (Hex-String) den Message Type (4 für Link State Update)
--- |Parameter 1: Hex-String (Link State Update)
+-- | Extrahiert aus einem Link State Update (Hex-String) den Message Type (4 für Link State Update)
+-- | Parameter 1: Hex-String (Link State Update)
 extractMessageType :: String -> Int
 extractMessageType lsu = hexToInt (take (messageTypeLength*2)
 	(drop (dataLinkFrameHeaderLength*2 + ipPacketHeaderLength*2 + messageTypeOffset*2) lsu))
 
--- |Extrahiert aus einem Link State Update (Hex-String) die Router Id des Senders
--- |Parameter 1: Hex-String (Link State Update)
+-- | Extrahiert aus einem Link State Update (Hex-String) die Router Id des Senders
+-- | Parameter 1: Hex-String (Link State Update)
 extractRouterId :: String -> RouterId
 extractRouterId lsu = hexToIp (take (routerIdLength*2)
 	(drop (dataLinkFrameHeaderLength*2 + ipPacketHeaderLength*2 + routerIdOffset*2) lsu))
 
--- |Extrahiert aus einem Link State Update (Hex-String) die Anzahl Link State Advertisements, die in diesem Update enthalten sind
--- |Parameter 1: Hex-String (Link State Update)
+-- | Extrahiert aus einem Link State Update (Hex-String) die Anzahl Link State Advertisements, die in diesem Update enthalten sind
+-- | Parameter 1: Hex-String (Link State Update)
 extractNumberOfLsa :: String -> Int
 extractNumberOfLsa lsu = hexToInt (take (numberOfLsaLength*2)
 	(drop (dataLinkFrameHeaderLength*2 + ipPacketHeaderLength*2 + ospfPacketHeaderLength*2 + numberOfLsaOffset*2) lsu))
 
--- |Extrahiert aus einem Link State Update (Hex-String) die Längen der einzelnen Link State Advertisements
--- |Parameter 1: Hex-String (Link State Update)
--- |Parameter 2: Anzahl Link State Advertisements in diesem Link State Update
--- |Parameter 3: Aktuelles Link State Advertisement (am Anfang 1)
--- |Parameter 4: Akkumulator Liste für LSA-Lengths (Am Anfang leer)
+-- | Extrahiert aus einem Link State Update (Hex-String) die Längen der einzelnen Link State Advertisements
+-- | Parameter 1: Hex-String (Link State Update)
+-- | Parameter 2: Anzahl Link State Advertisements in diesem Link State Update
+-- | Parameter 3: Aktuelles Link State Advertisement (am Anfang 1)
+-- | Parameter 4: Akkumulator Liste für LSA-Lengths (Am Anfang leer)
 extractLsaLengths :: String -> Int -> Int -> [Int] -> [Int]
 extractLsaLengths lsu numOfLsa nthLsa lengths =
 	if (numOfLsa == nthLsa)
@@ -155,12 +168,12 @@ extractLsaLengths lsu numOfLsa nthLsa lengths =
 			(drop (dataLinkFrameHeaderLength*2 + ipPacketHeaderLength*2 + ospfPacketHeaderLength*2 + lsuHeaderLength*2 +
 			(sum lengths)*2 + lsaLengthOffset*2) lsu))])
 
--- |Extrahiert aus einem Link State Update (Hex-String) die LSA Types der einzelnen Link State Advertisements (1 für Router-LSA)
--- |Parameter 1: Hex-String (Link State Update)
--- |Parameter 2: Anzahl Link State Advertisements in diesem Link State Update
--- |Parameter 3: Aktuelles Link State Advertisement (am Anfang 1)
--- |Parameter 4: Liste mit allen Längen der einzelnen Link State Advertisements
--- |Parameter 5: Akkumulator Liste für LSA-Types (Am Anfang leer)
+-- | Extrahiert aus einem Link State Update (Hex-String) die LSA Types der einzelnen Link State Advertisements (1 für Router-LSA)
+-- | Parameter 1: Hex-String (Link State Update)
+-- | Parameter 2: Anzahl Link State Advertisements in diesem Link State Update
+-- | Parameter 3: Aktuelles Link State Advertisement (am Anfang 1)
+-- | Parameter 4: Liste mit allen Längen der einzelnen Link State Advertisements
+-- | Parameter 5: Akkumulator Liste für LSA-Types (Am Anfang leer)
 extractLsaTypes :: String -> Int -> Int -> [Int] -> [Int] -> [Int]
 extractLsaTypes lsu numOfLsa nthLsa lengths types =
 	if (numOfLsa == nthLsa)
@@ -180,13 +193,13 @@ extractLsaTypes lsu numOfLsa nthLsa lengths types =
 			(drop (dataLinkFrameHeaderLength*2 + ipPacketHeaderLength*2 + ospfPacketHeaderLength*2 + lsuHeaderLength*2 +
 			(sum (take (nthLsa-1) lengths))*2 + lsaTypeOffset*2) lsu))])
 
--- |Extrahiert aus einem Link State Update (Hex-String) die Anzahl Links, die in diesem Link State Advertisement enthalten sind
--- |Parameter 1: Hex-String (Link State Update)
--- |Parameter 2: Anzahl Link State Advertisements in diesem Link State Update
--- |Parameter 3: Aktuelles Link State Advertisement (am Anfang 1)
--- |Parameter 4: Liste mit allen Längen der einzelnen Link State Advertisements
--- |Parameter 5: Liste mit allen LSA-Typen der einzelnen Link State Advertisements
--- |Parameter 6: Akkumulator Liste für NumberOfLinks (Am Anfang leer)
+-- | Extrahiert aus einem Link State Update (Hex-String) die Anzahl Links, die in diesem Link State Advertisement enthalten sind
+-- | Parameter 1: Hex-String (Link State Update)
+-- | Parameter 2: Anzahl Link State Advertisements in diesem Link State Update
+-- | Parameter 3: Aktuelles Link State Advertisement (am Anfang 1)
+-- | Parameter 4: Liste mit allen Längen der einzelnen Link State Advertisements
+-- | Parameter 5: Liste mit allen LSA-Typen der einzelnen Link State Advertisements
+-- | Parameter 6: Akkumulator Liste für NumberOfLinks (Am Anfang leer)
 extractNumbersOfLinks :: String -> Int -> Int -> [Int] -> [Int] -> [Int] -> [Int]
 extractNumbersOfLinks lsu numOfLsa nthLsa lengths types numOfLinks =
 	if (types!!(nthLsa-1) == 1)
@@ -219,15 +232,15 @@ extractNumbersOfLinks lsu numOfLsa nthLsa lengths types numOfLinks =
 				-- rekursiver Aufruf mit nächstem LSA als Parameter
 				else extractNumbersOfLinks lsu numOfLsa (nthLsa+1) lengths types numOfLinks
 
--- |Extrahiert aus einem Link State Update (Hex-String) die Router Id und entsprechenden Distanzen der Child Router
--- |Parameter 1: Hex-String (Link State Update)
--- |Parameter 2: Anzahl Link State Advertisements in diesem Link State Update
--- |Parameter 3: Aktuelles Link State Advertisement (am Anfang 1)
--- |Parameter 4: Liste mit allen Längen der einzelnen Link State Advertisements
--- |Parameter 5: Liste mit allen LSA-Typen der einzelnen Link State Advertisements
--- |Parameter 6: Liste mit den Anzahl Links pro Link State Advertisement (nur für Router-LSA)
--- |Parameter 7: Aktueller Link (am Anfang 1)
--- |Parameter 8: Akkumulator Liste für ChildNodes (Am Anfang leer)
+-- | Extrahiert aus einem Link State Update (Hex-String) die Router Id und entsprechenden Distanzen der Child Router
+-- | Parameter 1: Hex-String (Link State Update)
+-- | Parameter 2: Anzahl Link State Advertisements in diesem Link State Update
+-- | Parameter 3: Aktuelles Link State Advertisement (am Anfang 1)
+-- | Parameter 4: Liste mit allen Längen der einzelnen Link State Advertisements
+-- | Parameter 5: Liste mit allen LSA-Typen der einzelnen Link State Advertisements
+-- | Parameter 6: Liste mit den Anzahl Links pro Link State Advertisement (nur für Router-LSA)
+-- | Parameter 7: Aktueller Link (am Anfang 1)
+-- | Parameter 8: Akkumulator Liste für ChildNodes (Am Anfang leer)
 extractChildNodes :: String -> Int -> Int -> [Int] -> [Int] -> [Int] -> Int -> [ChildNode] -> [ChildNode]
 extractChildNodes lsu numOfLsa nthLsa lengths types (n:numOfLinks) nthLink childNodes =
 	if (types!!(nthLsa-1) == 1)
@@ -297,8 +310,8 @@ extractChildNodes lsu numOfLsa nthLsa lengths types (n:numOfLinks) nthLink child
 -- Rekursion wird beendet
 extractChildNodes lsu numOfLsa nthLsa lengths types [] nthLink childNodes = childNodes
 
--- |Liest ein LinkStateUpdate aus einem File ein und gibt die Topologie Tabelle (Graph) als Liste zurück
--- |Parameter 1: Datei Pfad zum Link State Update File das eingelesen werden soll
+-- | Liest ein LinkStateUpdate aus einem File ein und gibt die Topologie Tabelle (Graph) als Liste zurück
+-- | Parameter 1: Datei Pfad zum Link State Update File das eingelesen werden soll
 readLinkStateUpdate :: FilePath -> IO GraphEntry
 readLinkStateUpdate filePath = do
 	update <- readFile filePath
@@ -324,7 +337,7 @@ readLinkStateUpdate filePath = do
 		else []
 	return (routerId, childNodes)
 
--- |Liest alle definierten Link State Updates ein und baut daraus den Topology Graph
+-- | Liest alle definierten Link State Updates ein und baut daraus den Topology Graph
 buildTopoGraph :: IO [GraphEntry]
 buildTopoGraph = do
 	lsu1 <- readLinkStateUpdate "data/lsu1.txt"
@@ -339,12 +352,12 @@ buildTopoGraph = do
 ---------------------------------------------------------------------------------------------------------
 -- Funktionen für den Shortest Path Algorithmus
 
--- |Initialisiere die Routes Tabelle anhand des Graphen. Die Metriken für jeden Pfad werden mit -1 initialisiert
+-- | Initialisiere die Routes Tabelle anhand des Graphen. Die Metriken für jeden Pfad werden mit -1 initialisiert
 setupRoute :: Graph -> [ShortestPath]
 setupRoute ((a,_):graph) = (a,0,[]):[(fst g, -1, []) | g <- graph]
 
 
--- |Gibt RouterId zurück, welcher noch nicht abgearbeitet ist und den aktuell kürzesten Pfad hat
+-- | Gibt RouterId zurück, welcher noch nicht abgearbeitet ist und den aktuell kürzesten Pfad hat
 nextRouterId :: Graph -> [ShortestPath] -> RouterId
 nextRouterId graph shortestpaths = nextRId
 	where
@@ -352,17 +365,17 @@ nextRouterId graph shortestpaths = nextRId
 		possibleRoutes = [(routeId, metric, route) | (routeId, metric, route) <- shortestpaths, metric >= 0, elem routeId graphIds]
 		nextRId = fst (foldl sortShortestPath ("255.255.255.255", 10000) possibleRoutes)
 
--- |Vergleicht ein (RouterId, Metric)-Tupel mit einem ShortestPath und gibt das Element mit kleinerer Metrik zurück, als (RouterId, Metric)
--- |Wird verwendet um den Router mit dem aktuell kürzesten Pfad zu finden
+-- | Vergleicht ein (RouterId, Metric)-Tupel mit einem ShortestPath und gibt das Element mit kleinerer Metrik zurück, als (RouterId, Metric)
+-- | Wird verwendet um den Router mit dem aktuell kürzesten Pfad zu finden
 sortShortestPath :: (RouterId, Metric) -> ShortestPath -> (RouterId, Metric)
 sortShortestPath (routeIdL, metricL) (routeIdR,metricR,_) = if metricL < metricR then (routeIdL, metricL) else (routeIdR, metricR)
 
 
--- |Aktualisiert die Liste der kürzesten Pfade anhand des aktuell ausgewählten Router.
--- |Das erste Argument beschreibt die Distanz zu den Nachbarn des Routers
--- |Das zweite Argument ist der kürzeste Pfad zum aktuellen Router
--- |Das letzte Argument ist die Liste der aktuell kürzesten Pfade.
--- |Die Rückgabe ist die aktualisierte Shortestpath-Liste
+-- | Aktualisiert die Liste der kürzesten Pfade anhand des aktuell ausgewählten Router.
+-- | Das erste Argument beschreibt die Distanz zu den Nachbarn des Routers
+-- | Das zweite Argument ist der kürzeste Pfad zum aktuellen Router
+-- | Das letzte Argument ist die Liste der aktuell kürzesten Pfade.
+-- | Die Rückgabe ist die aktualisierte Shortestpath-Liste
 updateShortestPaths :: [ChildNode] -> ShortestPath -> [ShortestPath] -> [ShortestPath]
 updateShortestPaths ((neighbourId, neibourDistance):ns) currentRoute routes = updateShortestPaths ns currentRoute updated
 	where
@@ -372,16 +385,16 @@ updateShortestPaths ((neighbourId, neibourDistance):ns) currentRoute routes = up
 			else (nodeId, metrik, route) | (nodeId, metrik, route) <- routes]
 updateShortestPaths [] _ routes = routes
 
--- |Gibt den aktuellen ShortestPath zu einem Router aus der Liste zurück
+-- | Gibt den aktuellen ShortestPath zu einem Router aus der Liste zurück
 currentRoute :: [ShortestPath] -> RouterId -> ShortestPath
 currentRoute routes targetNode = head [(nodeId, metric, route) | (nodeId, metric, route) <- routes, nodeId == targetNode]
 
--- |Finde die Nachbarn im Graph für den aktuellen Router
+-- | Finde die Nachbarn im Graph für den aktuellen Router
 neighboursOfCurrentRouter :: RouterId -> Graph -> [ChildNode]
 neighboursOfCurrentRouter routerId graph = head ([neighbours | (rid, neighbours) <- graph, rid == routerId])
 -- neighboursOfCurrentRouter routerId graph = snd (head (filter (\(routerID, neighbours) -> routerID == routerId) graph))
 
--- |Berechung der kürzesten Pfade. Nimmt Topologie Tabelle als input Parameter und gibt eine Liste von Trippeln (ID, Metrik, Route) zurück
+-- | Berechung der kürzesten Pfade. Nimmt Topologie Tabelle als input Parameter und gibt eine Liste von Trippeln (ID, Metrik, Route) zurück
 dijkstra :: Graph -> [ShortestPath] -> [ShortestPath]
 dijkstra graph [] = dijkstra graph (setupRoute graph) -- einstieg: erstelle initiale Route tabledijkstra [] routes = routes -- basisfall: Routentabelle erstellt
 dijkstra [] routes = routes -- basisfall: Routentabelle erstellt
@@ -396,7 +409,7 @@ dijkstra graph routes = dijkstra restGraph shortestPaths  --- iteration: Wende A
 -- Funktionen für die Ausgabe
 
 
--- |Generiert die Routing Tabelle und schreibt diese auf die Konsole
+-- | Generiert die Routing Tabelle und schreibt diese auf die Konsole
 printRoutingTable :: [ShortestPath] -> NeighboursTable -> IO()
 printRoutingTable [] _ = putStrLn ""
 printRoutingTable (sp:xs) neighboursTable = do
@@ -427,7 +440,8 @@ printRoutingTable (sp:xs) neighboursTable = do
 		getRouterIdFromNeighboursTable (_,_,_,r,_,_) = r
 		getDeadFromNeighboursTable (_,_,_,_,_,d) = d
 
--- |Schreibt den Graphen auf die Konsole
+
+-- | Schreibt den Graphen auf die Konsole
 printGraph :: Graph -> IO()
 printGraph ((rid, children):xs) = do
 	putStrLn ("Router: " ++ rid ++ " \nhas neighbours:" ++ (formatNeighbours children) ++ "\n" )
@@ -436,7 +450,8 @@ printGraph ((rid, children):xs) = do
 		formatNeighbours ns = concat ["\n\tRouter: " ++ (show rid) ++ " Distance: " ++ (show dist) | (rid, dist) <- ns ]
 printGraph [] = do putStr ""
 
--- |Schreibt die Shortestpath Trees auf die Konsole
+
+-- | Schreibt die Shortestpath Trees auf die Konsole
 printShortestPaths :: [ShortestPath] -> IO()
 printShortestPaths ((rid,metric,[]):xs) = do printShortestPaths xs
 printShortestPaths ((rid,metric,route):xs) = do 
@@ -445,10 +460,12 @@ printShortestPaths ((rid,metric,route):xs) = do
 	where
 		formatPath path = concat [" -> " ++ r | r <- path]
 printShortestPaths [] = do putStr ""
+
+
 ---------------------------------------------------------------------------------------------------------
 -- Funktionen für die Nachbarschaftstabelle
 
--- |Teilt einen String an den Tabulatorenzeichen
+-- | Teilt einen String an den Tabulatorenzeichen
 splitStringOnTab :: String -> [String]
 splitStringOnTab x = splitIt [] [] x
 	where
@@ -457,12 +474,13 @@ splitStringOnTab x = splitIt [] [] x
 		splitIt accu [] [] = accu
 		splitIt accu curstring [] = splitIt (accu ++ [curstring]) [] []
 
--- |Parst eine Zeile in der Nachbarschaftstabelle
+
+-- | Parst eine Zeile in der Nachbarschaftstabelle
 parseNeighbourTableLine :: [String] -> NeighboursTableEntry
 parseNeighbourTableLine (a:i:s:r:p:d:[])  = (a, i, read s, r, read p, read d) :: (Address,Interface,State,RouterId,Priority,Dead)
 											-- Konvertieren auf den richtigen Typ. Vorsicht bei von [Char] abgeleiteten typen
 
--- |Liest die Nachbarschaftstabelle (in Tabellenform) aus einem File ein und parst diese in eine Liste mit Nachbarn und deren Eigenschaften
+-- | Liest die Nachbarschaftstabelle (in Tabellenform) aus einem File ein und parst diese in eine Liste mit Nachbarn und deren Eigenschaften
 readNeighbourTable :: String -> NeighboursTable
 readNeighbourTable fileContents = processNeighbourTable (tail (lines fileContents))  -- ignoriere erste zeile
 	where
@@ -470,7 +488,7 @@ readNeighbourTable fileContents = processNeighbourTable (tail (lines fileContent
 		processLine x = parseNeighbourTableLine (splitStringOnTab x)
 
 
--- |Das Programm
+-- | Das Programm.
 main = do
 		neighboursTableContents <- readFile "data/neighboursTable.txt"
 		expectedResultFileContents  <- readFile "data/expectedResult.txt"
