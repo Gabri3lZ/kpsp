@@ -436,9 +436,14 @@ printGraph ((rid, children):xs) = do
 		formatNeighbours ns = concat ["\n\tRouter: " ++ (show rid) ++ " Distance: " ++ (show dist) | (rid, dist) <- ns ]
 printGraph [] = do putStr ""
 
+-- |Schreibt die Shortestpath Trees auf die Konsole
 printShortestPaths :: [ShortestPath] -> IO()
+printShortestPaths ((rid,metric,[]):xs) = do printShortestPaths xs
 printShortestPaths ((rid,metric,route):xs) = do 
-	putStrLn (show rid)
+	putStrLn ("Target Router: " ++ rid ++ "\tMetric: " ++ (show metric) ++ "\tPath:" ++ (formatPath route))
+	printShortestPaths xs
+	where
+		formatPath path = concat [" -> " ++ r | r <- path]
 printShortestPaths [] = do putStr ""
 ---------------------------------------------------------------------------------------------------------
 -- Funktionen für die Nachbarschaftstabelle
@@ -481,8 +486,6 @@ main = do
 
 		putStrLn "\n***** Shortest Paths *****"
 		printShortestPaths shortestPaths
-		putStrLn "\n***** Shortest Paths *****"
-		putStrLn (show shortestPaths)
 		putStrLn "\n***** Routing Table *****"
 		printRoutingTable shortestPaths neighboursTable
 		putStrLn "***** Test Result *****"
