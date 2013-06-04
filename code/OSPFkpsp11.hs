@@ -430,12 +430,16 @@ printRoutingTable (sp:xs) neighboursTable = do
 -- |Schreibt den Graphen auf die Konsole
 printGraph :: Graph -> IO()
 printGraph ((rid, children):xs) = do
-	putStrLn (show rid ++ " - has neighbours: [" ++ (formatNeighbours children) ++ " ]" )
+	putStrLn (show rid ++ " \nhas neighbours:" ++ (formatNeighbours children) ++ "\n" )
 	printGraph xs
 	where
-		formatNeighbours ns = concat [" Router: " ++ (show rid) ++ " Distance: " ++ (show dist) | (rid, dist) <- ns ]
+		formatNeighbours ns = concat ["\n\tRouter: " ++ (show rid) ++ " Distance: " ++ (show dist) | (rid, dist) <- ns ]
 printGraph [] = do putStr ""
 
+printShortestPaths :: [ShortestPath] -> IO()
+printShortestPaths ((rid,metric,route):xs) = do 
+	putStrLn (show rid)
+printShortestPaths [] = do putStr ""
 ---------------------------------------------------------------------------------------------------------
 -- Funktionen für die Nachbarschaftstabelle
 
@@ -474,6 +478,9 @@ main = do
 
 		putStrLn "\n***** Topology Graph *****"
 		printGraph topoGraphInput
+
+		putStrLn "\n***** Shortest Paths *****"
+		printShortestPaths shortestPaths
 		putStrLn "\n***** Shortest Paths *****"
 		putStrLn (show shortestPaths)
 		putStrLn "\n***** Routing Table *****"
