@@ -396,7 +396,7 @@ neighboursOfCurrentRouter routerId graph = head ([neighbours | (rid, neighbours)
 
 -- | Berechung der kürzesten Pfade. Nimmt Topologie Tabelle als input Parameter und gibt eine Liste von Trippeln (ID, Metrik, Route) zurück
 dijkstra :: Graph -> [ShortestPath] -> [ShortestPath]
-dijkstra graph [] = dijkstra graph (setupRoute graph) -- einstieg: erstelle initiale Route tabledijkstra [] routes = routes -- basisfall: Routentabelle erstellt
+dijkstra graph [] = dijkstra graph (setupRoute graph) -- einstieg: erstelle initiale Route table
 dijkstra [] routes = routes -- basisfall: Routentabelle erstellt
 dijkstra graph routes = dijkstra restGraph shortestPaths  --- iteration: Wende Algorithmus für jeden Router im Graphen an
 	where
